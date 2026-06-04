@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poster.ai — Générateur d'affiches par IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:opsz,wght@9..40,200;9..40,300;9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a26;
+  --border:#ffffff0f;--border2:#ffffff18;--border3:#ffffff28;
+  --text:#f0f0f8;--text2:#9090a8;--text3:#5a5a72;
+  --accent:#7c5cfc;--accent2:#a07cff;--accentGlow:#7c5cfc40;
+  --red:#ff4d6d;--green:#00d4a0;
+  --radius:10px;--radiusLg:16px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+/* ── LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;gap:12px}
+.hdr-logo{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;letter-spacing:-0.5px;white-space:nowrap}
+.hdr-logo span{color:var(--accent)}
+.hdr-sub{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;white-space:nowrap}
+.hdr-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.main{display:grid;grid-template-columns:340px 1fr;flex:1;min-height:0;overflow:hidden}
+
+/* ── CONTROL PANEL ── */
+.ctrl{background:var(--bg);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.ctrl::-webkit-scrollbar{width:4px}
+.ctrl::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.section{padding:14px 18px;border-bottom:1px solid var(--border)}
+.section-lbl{font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;font-family:'Space Mono',monospace}
+
+/* Format */
+.fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.fmt-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 4px;cursor:pointer;color:var(--text2);font-size:10px;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px}
+.fmt-btn:hover{border-color:var(--border3);color:var(--text)}
+.fmt-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accentGlow)}
+.fmt-icon{font-size:15px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:10px}
+.tab{flex:1;padding:6px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;cursor:pointer;color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--accentGlow);border-color:var(--accent);color:var(--accent2)}
+
+/* Inputs */
+textarea,input[type=text]{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:9px 11px;resize:vertical;outline:none;transition:border-color .2s;line-height:1.5}
+textarea:focus,input[type=text]:focus{border-color:var(--accent)}
+textarea::placeholder,input::placeholder{color:var(--text3)}
+
+/* Drop zone */
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:20px 14px;text-align:center;cursor:pointer;transition:all .25s;background:var(--bg2);user-select:none}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:var(--accentGlow)}
+.drop-zone.has-file{border-style:solid;border-color:#00d4a055;background:#00d4a00d}
+.drop-icon{font-size:24px;margin-bottom:6px;display:block}
+.drop-txt{font-size:12px;color:var(--text2);margin-bottom:3px}
+.drop-hint{font-size:10px;color:var(--text3)}
+.pdf-meta-bar{display:flex;justify-content:space-between;align-items:center;margin:8px 0 5px;font-size:10px;color:var(--text3)}
+.pdf-ok{color:var(--green)}
+.pdf-edit{font-size:10px;line-height:1.6;font-family:'Space Mono',monospace}
+
+/* Style chips */
+.style-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.style-chip{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:6px 3px;cursor:pointer;color:var(--text2);font-size:9px;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.style-chip:hover{border-color:var(--border3);color:var(--text);transform:translateY(-1px)}
+.style-chip.active{border-color:var(--chAccent,var(--accent));background:color-mix(in srgb,var(--chAccent,var(--accent)) 15%,transparent);color:var(--chAccent,var(--accent2))}
+.chip-emoji{font-size:13px}
+.chip-lbl{font-size:8px;letter-spacing:.4px;text-transform:capitalize}
+
+/* Error */
+.err-banner{background:#ff4d6d18;border:1px solid #ff4d6d44;border-radius:8px;padding:7px 11px;font-size:11px;color:var(--red)}
+
+/* Buttons */
+.btn-primary{width:100%;padding:11px;background:var(--accent);border:none;border-radius:var(--radius);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
+.btn-primary.gen{background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent));background-size:200%;animation:shimmer 1.5s infinite}
+.sec-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px}
+.btn-sec{padding:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;text-align:center}
+.btn-sec:hover:not(:disabled){border-color:var(--border3);color:var(--text);background:var(--bg3)}
+.btn-sec:disabled{opacity:.3;cursor:not-allowed}
+.spinner{width:13px;height:13px;border:2px solid #ffffff44;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PREVIEW ── */
+.preview{background:var(--bg2);display:flex;flex-direction:column;overflow:hidden}
+.prev-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.prev-lbl{font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;letter-spacing:1px}
+.prev-tag{font-size:9px;color:var(--accent);background:var(--accentGlow);border:1px solid #7c5cfc44;border-radius:20px;padding:2px 10px;font-family:'Space Mono',monospace}
+.canvas-area{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;min-height:0}
+.canvas-wrap{position:relative;box-shadow:0 16px 50px #00000090;border-radius:3px;overflow:hidden;transition:all .3s;flex-shrink:0}
+canvas{display:block}
+.gen-overlay{position:absolute;inset:0;background:#00000088;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;backdrop-filter:blur(3px)}
+.gen-overlay .big-spinner{width:34px;height:34px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.gen-overlay .gen-txt{font-size:12px;color:var(--text2);font-family:'Space Mono',monospace}
+
+/* Editor */
+.editor-strip{border-top:1px solid var(--border);background:var(--bg);padding:14px 18px;flex-shrink:0}
+.ed-title{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:8px}
+.ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ed-field label{font-size:9px;color:var(--text3);display:block;margin-bottom:2px;font-family:'Space Mono',monospace;letter-spacing:.5px}
+.ed-field input,.ed-field textarea{font-size:11px}
+.ed-field.full{grid-column:1/-1}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border3);border-radius:var(--radius);padding:9px 15px;font-size:12px;color:var(--text);box-shadow:0 8px 30px #00000060;z-index:999;font-family:'DM Sans',sans-serif;animation:slideIn .25s ease;pointer-events:none}
+@keyframes slideIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* API key banner */
+.api-banner{background:#7c5cfc18;border:1px solid #7c5cfc44;border-radius:var(--radius);padding:9px 12px;font-size:11px;color:var(--accent2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.api-banner input{flex:1;min-width:160px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;padding:5px 9px;outline:none;font-family:'Space Mono',monospace}
+.api-banner input:focus{border-color:var(--accent)}
+.api-save{padding:5px 12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.api-save:hover{background:var(--accent2)}
+
+/* Responsive */
+@media(max-width:780px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .ctrl{max-height:50vh;border-right:none;border-bottom:1px solid var(--border)}
+  .hdr-sub{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div>
+      <div class="hdr-logo">Poster<span>.ai</span></div>
+      <div class="hdr-sub">Générateur d'affiches par intelligence artificielle</div>
+    </div>
+    <div class="hdr-right">
+      <span id="hdr-status" style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace"></span>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ── CONTROL PANEL ── -->
+    <aside class="ctrl">
+
+      <!-- API Key -->
+      <div class="section">
+        <div class="section-lbl">Clé API Anthropic</div>
+        <div class="api-banner">
+          <input type="password" id="api-key" placeholder="sk-ant-api03-…" autocomplete="off">
+          <button class="api-save" onclick="saveApiKey()">Sauvegarder</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5">
+          Obtenez une clé sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. Stockée uniquement dans votre navigateur.
+        </div>
+      </div>
+
+      <!-- Format -->
+      <div class="section">
+        <div class="section-lbl">Format</div>
+        <div class="fmt-grid" id="fmt-grid"></div>
+      </div>
+
+      <!-- Input tabs -->
+      <div class="section">
+        <div class="tabs">
+          <button class="tab active" id="tab-text" onclick="switchTab('text')">✏ Texte</button>
+          <button class="tab" id="tab-pdf" onclick="switchTab('pdf')">📎 PDF</button>
+          <button class="tab" id="tab-both" onclick="switchTab('both')">⊕ Les deux</button>
+        </div>
+
+        <!-- TEXT pane -->
+        <div id="pane-text">
+          <textarea id="user-text" rows="5"
+            placeholder="Décrivez votre affiche…&#10;Ex : Conférence IA Paris, 15 mars 2025. Public professionnel. Thème : futur du travail."></textarea>
+        </div>
+
+        <!-- PDF pane -->
+        <div id="pane-pdf" style="display:none">
+          <div class="drop-zone" id="dz1"
+               onclick="document.getElementById('fi1').click()"
+               ondragover="dzOver(event,'dz1')" ondragleave="dzLeave('dz1')" ondrop="dzDrop(event,1)">
+            <span class="drop-icon" id="di1">📎</span>
+            <div class="drop-txt" id="dt1">Glisser-déposer un PDF ici</div>
+            <div class="drop-hint" id="dh1">ou cliquer pour parcourir</div>
+          </div>
+          <input type="file" id="fi1" accept=".pdf" style="display:none" onchange="handleFile(event,1)">
+          <div id="pp1" style="display:none;margin-top:8px">
+            <div class="pdf-meta-bar"><span id="pm1"></span><span class="pdf-ok">✓ extrait</span></div>
+            <textarea class="pdf-edit" id="pe1" rows="5"></textarea>
+          </div>
+        </div>
+
+        <!-- BOTH pane -->
+        <div id="pane-both" style="display:none">
+          <textarea id="user-text2" rows="3" placeholder="Contexte additionnel…" style="margin-bottom:8px"></textarea>
+          <div class="drop-zone" id="dz2"
+               onclick="document.getElementById('fi2').click()"
+               ondragover="dzOver(event,'dz2')" ondragleave="dzLeave('dz2')" ondrop="dzDrop(event,2)">
+            <span class="drop-icon" id="di2">📎</span>
+            <div class="drop-txt" id="dt2">Déposer PDF ici</div>
+            <div class="drop-hint">ou cliquer pour parcourir</div>
+          </div>
+          <input type="file" id="fi2" accept=".pdf" style="display:none" onchange="handleFile(event,2)">
+          <div id="pp2" style="display:none;margin-top:8px">
+            <textarea class="pdf-edit" id="pe2" rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Style -->
+      <div class="section">
+        <div class="section-lbl">Style visuel</div>
+        <div class="style-grid" id="style-grid"></div>
+      </div>
+
+      <!-- Error -->
+      <div class="section" id="err-section" style="display:none;padding-top:0;border-bottom:none">
+        <div class="err-banner" id="err-msg"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="section" style="margin-top:auto;border-bottom:none">
+        <button class="btn-primary" id="gen-btn" onclick="handleGenerate()">
+          <span>✦</span><span>Générer l'affiche</span>
+        </button>
+        <div class="sec-actions">
+          <button class="btn-sec" id="regen-btn" onclick="handleRegenerate()" disabled>↻ Variante</button>
+          <button class="btn-sec" id="dl-btn" onclick="handleDownload()" disabled>↓ PNG</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── PREVIEW PANEL ── -->
+    <section class="preview">
+      <div class="prev-hdr">
+        <span class="prev-lbl">APERÇU CANVAS</span>
+        <span class="prev-tag" id="fmt-tag">A4 Portrait</span>
+      </div>
+      <div class="canvas-area">
+        <div class="canvas-wrap" id="canvas-wrap">
+          <canvas id="main-canvas"></canvas>
+          <div id="gen-overlay" style="display:none" class="gen-overlay">
+            <div class="big-spinner"></div>
+            <div class="gen-txt" id="overlay-txt">Génération en cours…</div>
+          </div>
+        </div>
+      </div>
+      <div class="editor-strip" id="editor-strip" style="display:none">
+        <div class="ed-title">Modifier le contenu — le canvas se met à jour en temps réel</div>
+        <div class="ed-grid">
+          <div class="ed-field"><label>Titre</label><input type="text" id="ed-title" oninput="liveUpdate()"></div>
+          <div class="ed-field"><label>Sous-titre</label><input type="text" id="ed-subtitle" oninput="liveUpdate()"></div>
+          <div class="ed-field full"><label>Corps du texte (• pour les puces)</label><textarea id="ed-body" rows="2" oninput="liveUpdate()"></textarea></div>
+          <div class="ed-field"><label>Pied de page</label><input type="text" id="ed-footer" oninput="liveUpdate()"></div>
+          <div class="ed-field"><label>Tags (virgule-séparés)</label><input type="text" id="ed-tags" oninput="liveUpdate()"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const FORMATS = {
+  'A4 Portrait':  { w:794,  h:1123, icon:'▯', lbl:'A4 Portrait' },
+  'A4 Paysage':   { w:1123, h:794,  icon:'▭', lbl:'A4 Paysage' },
+  'Bannière Web': { w:1000, h:400,  icon:'▬', lbl:'Bannière Web' },
+};
+
+const STYLES = {
+  moderne:     { emoji:'⚡', bg:['#0f0f0f','#1a1a2e'], accent:'#00d4ff', text:'#ffffff', sub:'#a0a0b0', tw:'800', decor:'lines' },
+  minimaliste: { emoji:'◻', bg:['#fafaf8','#f0ede6'], accent:'#1a1a1a', text:'#1a1a1a', sub:'#555555', tw:'200', decor:'dots' },
+  futuriste:   { emoji:'🔮', bg:['#050510','#0d0d2b'], accent:'#7c3aed', text:'#e0e0ff', sub:'#8080cc', tw:'900', decor:'grid' },
+  vintage:     { emoji:'🎞', bg:['#2c1810','#4a2c1a'], accent:'#d4a853', text:'#f5e6d0', sub:'#c4a882', tw:'700', decor:'ornament' },
+  luxe:        { emoji:'✦', bg:['#1a1207','#2d1e0a'], accent:'#c9a84c', text:'#f8f0e0', sub:'#b0986a', tw:'300', decor:'ornament' },
+  evenementiel:{ emoji:'🎯', bg:['#0d1b2a','#1b4332'], accent:'#ff6b35', text:'#ffffff', sub:'#a8d5ba', tw:'900', decor:'burst' },
+  corporate:   { emoji:'📊', bg:['#1e3a5f','#0a1628'], accent:'#4fc3f7', text:'#ffffff', sub:'#90caf9', tw:'600', decor:'lines' },
+  cyberpunk:   { emoji:'⬡', bg:['#0a0a0a','#1a001a'], accent:'#ff00ff', text:'#ffffff', sub:'#cc00cc', tw:'900', decor:'grid' },
+};
+
+const STYLE_GUIDES = {
+  moderne:'Texte concis et accrocheur, vocabulaire tech et innovation, ton contemporain.',
+  minimaliste:'Ultra-épuré, sobre. Peu de mots, maximum d\'impact. Élégance par la simplicité.',
+  futuriste:'Vocabulaire avant-gardiste, concepts futuristes, terminologie technologique avancée.',
+  vintage:'Tons nostalgiques, charme d\'époque révolue, évocateur et artisanal.',
+  luxe:'Élégance absolue, exclusivité, vocabulaire haut-de-gamme et raffiné.',
+  evenementiel:'Dynamique et informatif. Date et lieu clairs. Appel à l\'action fort.',
+  corporate:'Professionnel et structuré. Chiffres clés, résultats concrets, ton factuel.',
+  cyberpunk:'Argot tech, néologismes, énergie brute, ambiance dystopie-cool.',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let S = {
+  format: 'A4 Portrait',
+  style: 'moderne',
+  tab: 'text',
+  posterData: null,
+  busy: false,
+  apiKey: '',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore API key
+  S.apiKey = localStorage.getItem('poster_ai_key') || '';
+  if (S.apiKey) document.getElementById('api-key').value = S.apiKey;
+
+  // Build format buttons
+  const fg = document.getElementById('fmt-grid');
+  Object.entries(FORMATS).forEach(([k,v]) => {
+    const b = document.createElement('button');
+    b.className = 'fmt-btn' + (k === S.format ? ' active' : '');
+    b.innerHTML = `<span class="fmt-icon">${v.icon}</span><span style="font-size:9px">${v.lbl}</span>`;
+    b.onclick = () => {
+      S.format = k;
+      document.querySelectorAll('.fmt-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById('fmt-tag').textContent = v.lbl;
+      S.posterData ? renderCanvas(S.posterData) : renderDefault();
+    };
+    fg.appendChild(b);
+  });
+
+  // Build style chips
+  const sg = document.getElementById('style-grid');
+  Object.entries(STYLES).forEach(([k,v]) => {
+    const b = document.createElement('button');
+    b.className = 'style-chip' + (k === S.style ? ' active' : '');
+    b.style.setProperty('--chAccent', v.accent);
+    b.innerHTML = `<span class="chip-emoji">${v.emoji}</span><span class="chip-lbl">${k}</span>`;
+    b.id = 'chip-' + k;
+    b.onclick = () => {
+      S.style = k;
+      document.querySelectorAll('.style-chip').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      S.posterData ? renderCanvas(S.posterData) : renderDefault();
+    };
+    sg.appendChild(b);
+  });
+
+  // PDF.js worker
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    document.getElementById('hdr-status').textContent = '● PDF.js prêt';
+  } else {
+    document.getElementById('hdr-status').textContent = '⚠ PDF.js manquant';
+  }
+
+  renderDefault();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API KEY
+// ─────────────────────────────────────────────────────────────────────────────
+function saveApiKey() {
+  const v = document.getElementById('api-key').value.trim();
+  if (!v.startsWith('sk-ant')) { showErr('Clé invalide — doit commencer par sk-ant…'); return; }
+  S.apiKey = v;
+  localStorage.setItem('poster_ai_key', v);
+  showToast('✓ Clé API sauvegardée');
+  clearErr();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  S.tab = t;
+  ['text','pdf','both'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+    document.getElementById('pane-'+id).style.display = id===t ? '' : 'none';
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PDF EXTRACTION
+// ─────────────────────────────────────────────────────────────────────────────
+function dzOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag'); }
+function dzLeave(id) { document.getElementById(id).classList.remove('drag'); }
+function dzDrop(e, slot) {
+  e.preventDefault();
+  dzLeave(slot===1?'dz1':'dz2');
+  processPdf(e.dataTransfer.files[0], slot);
+}
+function handleFile(e, slot) { processPdf(e.target.files[0], slot); }
+
+async function processPdf(file, slot) {
+  if (!file || file.type !== 'application/pdf') { showErr('Fichier PDF invalide.'); return; }
+  if (typeof pdfjsLib === 'undefined') { showErr('PDF.js non disponible — rechargez la page.'); return; }
+
+  const ids = slot===1
+    ? { dz:'dz1', icon:'di1', txt:'dt1', hint:'dh1', pp:'pp1', pm:'pm1', pe:'pe1' }
+    : { dz:'dz2', icon:'di2', txt:'dt2', hint:null, pp:'pp2', pm:null, pe:'pe2' };
+
+  document.getElementById(ids.txt).textContent = 'Extraction…';
+  document.getElementById(ids.icon).textContent = '⏳';
+
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    let full = '';
+    for (let i=1; i<=Math.min(pdf.numPages,10); i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      full += content.items.map(s=>s.str).join(' ') + '\n\n';
+    }
+    const clean = full.replace(/\s+/g,' ').trim().substring(0, 2500);
+    const words = full.split(/\s+/).length;
+
+    document.getElementById(ids.dz).classList.add('has-file');
+    document.getElementById(ids.icon).textContent = '📄';
+    document.getElementById(ids.txt).textContent = file.name;
+    if (ids.hint) document.getElementById(ids.hint).textContent = `${pdf.numPages} page(s) · ${words} mots`;
+    if (ids.pm) document.getElementById(ids.pm).textContent = `${pdf.numPages} pages · ${words} mots`;
+    document.getElementById(ids.pp).style.display = '';
+    document.getElementById(ids.pe).value = clean.substring(0,1400);
+
+    showToast(`✓ PDF extrait — ${pdf.numPages} page(s)`);
+  } catch(err) {
+    showErr('Erreur lecture PDF : ' + err.message);
+    document.getElementById(ids.icon).textContent = '📎';
+    document.getElementById(ids.txt).textContent = 'Glisser-déposer un PDF ici';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI GENERATION
+// ─────────────────────────────────────────────────────────────────────────────
+async function callAI(prompt) {
+  if (!S.apiKey) throw new Error('Clé API manquante — renseignez-la en haut du panneau');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': S.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role:'user', content: prompt }]
+    })
+  });
+  if (!r.ok) {
+    const d = await r.json().catch(()=>({}));
+    throw new Error(d.error?.message || `HTTP ${r.status}`);
+  }
+  const d = await r.json();
+  const txt = d.content?.[0]?.text || '';
+  const m = txt.match(/\{[\s\S]*\}/);
+  if (m) return JSON.parse(m[0]);
+  throw new Error('Réponse non parsable');
+}
+
+function buildPrompt(userText, pdfText, variant, existing) {
+  if (variant) {
+    return `Génère une variante créative de cette affiche style "${S.style}". Change complètement l'angle narratif et le message.
+Contenu actuel: ${JSON.stringify(existing)}
+Réponds UNIQUEMENT avec un objet JSON valide (sans backticks):
+{"title":"TITRE MAJUSCULES MAX 5 MOTS","subtitle":"sous-titre max 12 mots","body":"• point 1\n• point 2\n• point 3","tags":["tag1","tag2","tag3"],"footer":"pied de page"}`;
+  }
+  const input = [
+    userText ? `DESCRIPTION: ${userText}` : '',
+    pdfText  ? `CONTENU PDF: ${pdfText.substring(0,1400)}` : '',
+  ].filter(Boolean).join('\n\n') || 'Génère un contenu créatif cohérent avec le style.';
+
+  return `Tu es expert en création d'affiches visuelles professionnelles.
+Style: ${S.style} — ${STYLE_GUIDES[S.style]}
+Format: ${S.format}
+${input}
+
+Réponds UNIQUEMENT avec un objet JSON valide (sans backticks markdown, sans commentaire):
+{"title":"TITRE EN MAJUSCULES MAX 5 MOTS","subtitle":"Sous-titre percutant max 12 mots","body":"• Premier point clé\n• Deuxième point clé\n• Troisième point clé","tags":["Tag1","Tag2","Tag3"],"footer":"Contact ou date ou site"}`;
+}
+
+async function handleGenerate() {
+  if (S.busy) return;
+  const userText = (document.getElementById('user-text').value || document.getElementById('user-text2').value || '').trim();
+  const pdfText = (document.getElementById('pe1').value || document.getElementById('pe2').value || '').trim();
+  if (!userText && !pdfText) { showErr('Saisissez un texte ou importez un PDF.'); return; }
+  clearErr();
+  setBusy(true, 'Génération par IA…');
+  try {
+    const data = await callAI(buildPrompt(userText, pdfText, false, null));
+    applyPosterData(data);
+    showToast('✓ Affiche générée !');
+  } catch(e) { showErr('Erreur : ' + e.message); }
+  finally { setBusy(false); }
+}
+
+async function handleRegenerate() {
+  if (!S.posterData || S.busy) return;
+  setBusy(true, 'Génération d\'une variante…');
+  try {
+    const data = await callAI(buildPrompt('','',true,S.posterData));
+    applyPosterData(data);
+    showToast('✓ Nouvelle variante !');
+  } catch(e) { showErr('Erreur : ' + e.message); }
+  finally { setBusy(false); }
+}
+
+function applyPosterData(data) {
+  S.posterData = data;
+  renderCanvas(data);
+  document.getElementById('ed-title').value   = data.title    || '';
+  document.getElementById('ed-subtitle').value= data.subtitle || '';
+  document.getElementById('ed-body').value    = data.body     || '';
+  document.getElementById('ed-footer').value  = data.footer   || '';
+  document.getElementById('ed-tags').value    = (data.tags||[]).join(', ');
+  document.getElementById('editor-strip').style.display = '';
+  document.getElementById('regen-btn').disabled = false;
+  document.getElementById('dl-btn').disabled = false;
+}
+
+function liveUpdate() {
+  if (!S.posterData) return;
+  S.posterData = {
+    title:    document.getElementById('ed-title').value,
+    subtitle: document.getElementById('ed-subtitle').value,
+    body:     document.getElementById('ed-body').value,
+    footer:   document.getElementById('ed-footer').value,
+    tags:     document.getElementById('ed-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+  };
+  renderCanvas(S.posterData);
+}
+
+function handleDownload() {
+  const c = document.getElementById('main-canvas');
+  const a = document.createElement('a');
+  a.download = `affiche-${S.style}-${Date.now()}.png`;
+  a.href = c.toDataURL('image/png', 1.0);
+  a.click();
+  showToast('✓ Téléchargement PNG lancé');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS RENDERER
+// ─────────────────────────────────────────────────────────────────────────────
+function rgba(hex, a) {
+  if (!hex || hex.length < 7) return `rgba(128,128,128,${a})`;
+  return `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${a})`;
+}
+
+function rRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function wrapTxt(ctx, txt, x, y, maxW, lh, maxL) {
+  if (!txt) return y;
+  const words = txt.split(' ');
+  let line='', cy=y, n=0;
+  for (let i=0; i<words.length; i++) {
+    const t = line + words[i] + ' ';
+    if (ctx.measureText(t).width > maxW && i > 0) {
+      if (maxL && n >= maxL-1) { ctx.fillText(line.trim()+(i<words.length-1?'…':''), x, cy); return cy+lh; }
+      ctx.fillText(line.trim(), x, cy); line=words[i]+' '; cy+=lh; n++;
+    } else line=t;
+  }
+  if (line.trim()) { ctx.fillText(line.trim(), x, cy); cy+=lh; }
+  return cy;
+}
+
+function drawBg(ctx, W, H, pal) {
+  const g = ctx.createLinearGradient(0,0,W*0.6,H);
+  g.addColorStop(0,pal.bg[0]); g.addColorStop(1,pal.bg[1]);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+
+function drawDecor(ctx, W, H, pal) {
+  ctx.save();
+  const a = pal.accent;
+  if (pal.decor==='lines') {
+    ctx.strokeStyle=rgba(a,.1); ctx.lineWidth=1;
+    for(let i=0;i<W+H;i+=45){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(0,i);ctx.stroke();}
+    ctx.strokeStyle=rgba(a,.6); ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(0,H*.07);ctx.lineTo(W,H*.07);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,H*.93);ctx.lineTo(W,H*.93);ctx.stroke();
+  } else if (pal.decor==='dots') {
+    ctx.fillStyle=rgba(a,.12);
+    for(let x=20;x<W;x+=28)for(let y=20;y<H;y+=28){ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();}
+  } else if (pal.decor==='grid') {
+    ctx.strokeStyle=rgba(a,.07); ctx.lineWidth=.5;
+    for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    const bs=Math.min(W,H)*.06;
+    ctx.strokeStyle=rgba(a,.85); ctx.lineWidth=2.5;
+    [[0,0],[W,0],[0,H],[W,H]].forEach(([cx,cy])=>{
+      const dx=cx===0?1:-1,dy=cy===0?1:-1;
+      ctx.beginPath();ctx.moveTo(cx+dx*bs,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*bs);ctx.stroke();
+    });
+  } else if (pal.decor==='ornament') {
+    const m=Math.min(W,H)*.03;
+    ctx.strokeStyle=rgba(a,.35); ctx.lineWidth=1; ctx.strokeRect(m,m,W-m*2,H-m*2);
+    ctx.strokeStyle=rgba(a,.12); ctx.lineWidth=4; ctx.strokeRect(m+8,m+8,W-m*2-16,H-m*2-16);
+    const ds=9;
+    [[m,m],[W-m,m],[m,H-m],[W-m,H-m]].forEach(([cx,cy])=>{
+      ctx.fillStyle=a; ctx.beginPath();
+      ctx.moveTo(cx,cy-ds);ctx.lineTo(cx+ds,cy);ctx.lineTo(cx,cy+ds);ctx.lineTo(cx-ds,cy);
+      ctx.closePath();ctx.fill();
+    });
+  } else if (pal.decor==='burst') {
+    ctx.strokeStyle=rgba(a,.06); ctx.lineWidth=1;
+    const ox=W*.85,oy=H*.08;
+    for(let ang=0;ang<360;ang+=6){const r=ang*Math.PI/180;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+Math.cos(r)*W,oy+Math.sin(r)*W);ctx.stroke();}
+  }
+  ctx.restore();
+}
+
+function renderCanvas(data) {
+  const fmt = FORMATS[S.format];
+  const pal = STYLES[S.style];
+  const canvas = document.getElementById('main-canvas');
+  canvas.width=fmt.w; canvas.height=fmt.h;
+  const ctx=canvas.getContext('2d');
+  const W=fmt.w, H=fmt.h;
+  const isBanner = S.format==='Bannière Web';
+  const isPort   = S.format==='A4 Portrait';
+  const mX=W*.085, mY=H*(isBanner?.1:.075), cW=W-mX*2;
+
+  // Scale preview to fit panel
+  const maxPreviewW = isBanner ? 640 : isPort ? 380 : 560;
+  const scale = Math.min(1, maxPreviewW/W, (window.innerHeight*0.7)/H);
+  const wrap = document.getElementById('canvas-wrap');
+  wrap.style.width=(W*scale)+'px'; wrap.style.height=(H*scale)+'px';
+  canvas.style.transform=`scale(${scale})`; canvas.style.transformOrigin='top left';
+
+  // 1. Background
+  drawBg(ctx,W,H,pal);
+  // 2. Decor
+  drawDecor(ctx,W,H,pal);
+
+  // 3. Side accent bar (portrait)
+  if (isPort) {
+    ctx.fillStyle=rgba(pal.accent,.15); ctx.fillRect(0,H*.28,mX*.35,H*.44);
+    ctx.fillStyle=pal.accent; ctx.fillRect(0,H*.41,mX*.35,H*.18);
+  }
+
+  let cY=mY;
+
+  // 4. Tags
+  if (data.tags && data.tags.length) {
+    ctx.save();
+    let tx=mX;
+    const th=(isBanner?12:14)+14, tsz=isBanner?11:13;
+    ctx.font=`500 ${tsz}px 'DM Sans',sans-serif`;
+    data.tags.slice(0,4).forEach(tag=>{
+      const tw=ctx.measureText(tag).width+22;
+      if(tx+tw>W-mX)return;
+      rRect(ctx,tx,cY,tw,th,th/2);
+      ctx.fillStyle=rgba(pal.accent,.18);ctx.fill();
+      ctx.strokeStyle=rgba(pal.accent,.5);ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle=pal.accent;ctx.fillText(tag,tx+11,cY+th*.68);
+      tx+=tw+7;
+    });
+    cY+=th+(isBanner?8:16);
+    ctx.restore();
+  }
+
+  // 5. Accent line
+  if (!isBanner) {
+    ctx.fillStyle=pal.accent;
+    ctx.fillRect(mX,cY,Math.min(52,cW*.1),4);
+    cY+=13;
+  }
+
+  // 6. Title
+  if (data.title) {
+    ctx.save();
+    const tsz=isBanner?Math.min(W*.065,48):Math.min(W*.092,isPort?66:58);
+    ctx.font=`${pal.tw} ${tsz}px 'Playfair Display','Georgia',serif`;
+    ctx.fillStyle=pal.text;
+    if(pal.bg[0].match(/#[0-3]/)){ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=22;}
+    cY=wrapTxt(ctx,data.title,mX,cY,isBanner?cW*.58:cW,tsz*1.12,isBanner?2:4);
+    ctx.restore(); cY+=isBanner?2:tsz*.15;
+  }
+
+  // 7. Subtitle
+  if (data.subtitle) {
+    ctx.save();
+    const ssz=isBanner?Math.min(W*.03,22):Math.min(W*.038,28);
+    ctx.font=`300 ${ssz}px 'DM Sans',sans-serif`;
+    ctx.fillStyle=pal.sub;
+    cY=wrapTxt(ctx,data.subtitle,mX,cY,isBanner?cW*.56:cW*.9,ssz*1.5,isBanner?1:3);
+    ctx.restore(); cY+=8;
+  }
+
+  // 8. Divider
+  if (data.body && !isBanner) {
+    ctx.save();
+    const dg=ctx.createLinearGradient(mX,0,mX+cW*.42,0);
+    dg.addColorStop(0,pal.accent);dg.addColorStop(1,rgba(pal.accent,0));
+    ctx.strokeStyle=dg;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(mX,cY);ctx.lineTo(mX+cW*.42,cY);ctx.stroke();
+    ctx.restore(); cY+=16;
+  }
+
+  // 9. Body
+  if (data.body) {
+    ctx.save();
+    const bsz=isBanner?Math.min(W*.019,14):Math.min(W*.024,18);
+    const blh=bsz*1.75, maxBW=isBanner?cW*.54:cW, maxBH=H-cY-mY-50;
+    ctx.font=`300 ${bsz}px 'DM Sans',sans-serif`;
+    let by=cY;
+    for(const ln of data.body.split('\n').filter(l=>l.trim())){
+      if(by-cY>maxBH)break;
+      const t=ln.trim(), isBul=t.startsWith('•')||t.startsWith('-')||t.startsWith('*');
+      if(isBul){
+        ctx.fillStyle=pal.accent;ctx.fillText('•',mX,by);
+        ctx.fillStyle=pal.sub;
+        by=wrapTxt(ctx,t.replace(/^[•\-\*]\s*/,''),mX+18,by,maxBW-18,blh,2);
+      } else {
+        ctx.fillStyle=pal.sub;
+        by=wrapTxt(ctx,t,mX,by,maxBW,blh,2);
+      }
+      by+=bsz*.15;
+    }
+    ctx.restore();
+  }
+
+  // 10. Footer
+  if (data.footer) {
+    ctx.save();
+    const fsz=Math.min(W*.017,13), fy=H-mY*.5;
+    ctx.strokeStyle=rgba(pal.text,.12);ctx.lineWidth=.5;
+    ctx.beginPath();ctx.moveTo(mX,fy-fsz*1.7);ctx.lineTo(W-mX,fy-fsz*1.7);ctx.stroke();
+    ctx.font=`400 ${fsz}px 'DM Sans',sans-serif`;
+    ctx.fillStyle=rgba(pal.text,.35);
+    ctx.fillText(data.footer,mX,fy);
+    ctx.restore();
+  }
+
+  // 11. Banner right-side circle
+  if (isBanner) {
+    ctx.save();
+    const cx=W*.85,cy=H*.5;
+    for(let i=5;i>=1;i--){ctx.beginPath();ctx.arc(cx,cy,H*.11*i,0,Math.PI*2);ctx.strokeStyle=rgba(pal.accent,.055*i);ctx.lineWidth=2;ctx.stroke();}
+    ctx.beginPath();ctx.arc(cx,cy,H*.2,0,Math.PI*2);ctx.fillStyle=rgba(pal.accent,.12);ctx.fill();
+    ctx.restore();
+  }
+
+  // 12. Portrait bottom-right circle
+  if (isPort) {
+    ctx.save();
+    const cx=W*.85,cy=H*.77,r=W*.18;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=rgba(pal.accent,.06);ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,r*.6,0,Math.PI*2);ctx.fillStyle=rgba(pal.accent,.09);ctx.fill();
+    ctx.restore();
+  }
+}
+
+function renderDefault() {
+  renderCanvas({
+    title:'VOTRE AFFICHE',
+    subtitle:'Décrivez votre projet et générez en un clic',
+    body:'• Saisissez un texte ou importez un PDF\n• Choisissez votre style visuel\n• Cliquez sur Générer l\'affiche',
+    tags:['Design','IA','Canvas'],
+    footer:'Poster.ai — Génération par intelligence artificielle',
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function setBusy(v, msg='Génération…') {
+  S.busy=v;
+  const btn=document.getElementById('gen-btn');
+  const ov=document.getElementById('gen-overlay');
+  document.getElementById('overlay-txt').textContent=msg;
+  btn.disabled=v; btn.classList.toggle('gen',v);
+  btn.innerHTML = v
+    ? `<div class="spinner"></div><span>${msg}</span>`
+    : `<span>✦</span><span>Générer l'affiche</span>`;
+  ov.style.display=v?'flex':'none';
+}
+
+function showErr(m){document.getElementById('err-msg').textContent=m;document.getElementById('err-section').style.display='';}
+function clearErr(){document.getElementById('err-section').style.display='none';}
+
+let _tt;
+function showToast(m){
+  const t=document.getElementById('toast');t.textContent=m;t.style.display='';
+  clearTimeout(_tt);_tt=setTimeout(()=>t.style.display='none',3200);
+}
+</script>
+</body>
+</html>
